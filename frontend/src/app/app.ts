@@ -6,7 +6,10 @@ import { RouterLink, RouterOutlet } from '@angular/router';
   imports: [RouterLink, RouterOutlet],
   template: `
     <header class="app-header">
-      <a class="app-header__brand" routerLink="/">Generador de QR</a>
+      <a class="app-header__brand" routerLink="/">
+        <img class="app-header__logo" src="favicon.svg" alt="" width="28" height="28" />
+        Generador de QR
+      </a>
     </header>
     <main class="app-main">
       <router-outlet />

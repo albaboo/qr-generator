@@ -98,9 +98,18 @@ a {
 }
 
 .app-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
   font-weight: 700;
   color: inherit;
   text-decoration: none;
+}
+
+.app-header__logo {
+  display: block;
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .app-main {
