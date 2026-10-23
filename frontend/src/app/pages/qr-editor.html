@@ -1,6 +1,9 @@
 <a class="back-link" routerLink="/">← Mis QR</a>
 <div class="page-header">
-  <h1>{{ id() ? 'Editar QR' : 'Nuevo QR' }}</h1>
+  <h1>{{ title() }}</h1>
+  @if (editingId(); as id) {
+    <a class="button button--secondary" [routerLink]="['/qr', id, 'clonar']">Clonar</a>
+  }
 </div>
 
 @if (loading()) {
@@ -24,6 +27,7 @@
             class="message"
             [class.message--success]="message.kind === 'success'"
             [class.message--error]="message.kind === 'error'"
+            [class.message--muted]="message.kind === 'info'"
           >
             {{ message.text }}
           </p>
@@ -264,8 +268,13 @@
       </fieldset>
 
       <div class="actions">
-        <button type="submit" class="button" [disabled]="!canSave()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
+        <button type="submit" class="button" [disabled]="!canSave()">
+          {{ saving() ? 'Guardando…' : saveLabel() }}
+        </button>
         <button type="button" class="button button--secondary" (click)="reset()">Restablecer diseño</button>
+        @if (editingId()) {
+          <button type="button" class="button button--danger actions__end" (click)="remove()">Borrar</button>
+        }
       </div>
     </form>
   </div>

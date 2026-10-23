@@ -10,5 +10,12 @@ export const routes: Routes = [
   { path: '', component: QrList, title: 'Mis QR' },
   { path: 'nuevo', component: QrEditor, title: 'Nuevo QR', canDeactivate: [confirmUnsaved] },
   { path: 'qr/:id', component: QrEditor, title: 'Editar QR', canDeactivate: [confirmUnsaved] },
+  {
+    path: 'qr/:id/clonar',
+    component: QrEditor,
+    title: 'Clonar QR',
+    data: { clone: true },
+    canDeactivate: [confirmUnsaved],
+  },
   { path: '**', redirectTo: '' },
 ];

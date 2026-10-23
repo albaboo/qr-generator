@@ -6,7 +6,7 @@ import { QrApi } from '../qr/qr-api';
 import { QrDownload } from '../qr/qr-download';
 import { QrPreview } from '../qr/qr-preview';
 
-/** Página de inicio: los QR guardados, para volver a descargarlos, editarlos o borrarlos. */
+/** Página de inicio: los QR guardados, para volver a descargarlos, editarlos, clonarlos o borrarlos. */
 @Component({
   selector: 'app-qr-list',
   imports: [DatePipe, RouterLink, QrDownload, QrPreview],
@@ -48,6 +48,7 @@ import { QrPreview } from '../qr/qr-preview';
               <app-qr-download [name]="qr.name" [value]="qr.value" [design]="qr.design" />
               <div class="actions">
                 <a class="button button--secondary" [routerLink]="['/qr', qr.id]">Editar</a>
+                <a class="button button--secondary" [routerLink]="['/qr', qr.id, 'clonar']">Clonar</a>
                 <button type="button" class="button button--danger" (click)="remove(qr)">Borrar</button>
               </div>
             </li>

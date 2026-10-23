@@ -6,7 +6,12 @@ import { QrEditor } from './qr-editor';
 
 describe('QrEditor', () => {
   let fixture: ComponentFixture<QrEditor>;
-  let api: { get: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+  let api: {
+    get: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    remove: ReturnType<typeof vi.fn>;
+  };
   const saved: SavedQr = {
     id: 'abc',
     name: 'Web',
@@ -21,6 +26,7 @@ describe('QrEditor', () => {
       get: vi.fn().mockResolvedValue(saved),
       create: vi.fn().mockResolvedValue(saved),
       update: vi.fn().mockResolvedValue(saved),
+      remove: vi.fn().mockResolvedValue(undefined),
     };
     TestBed.configureTestingModule({ providers: [provideRouter([]), { provide: QrApi, useValue: api }] });
     fixture = TestBed.createComponent(QrEditor);
@@ -73,6 +79,50 @@ describe('QrEditor', () => {
     });
     expect(fixture.componentInstance.hasUnsavedChanges()).toBe(false);
     expect(element().textContent).toContain('Guardado.');
+  });
+
+  it('clona un QR: parte de su diseño, permite cambiarlo y al confirmar crea otro sin tocar el original', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    api.create.mockResolvedValue({ ...saved, id: 'nuevo' });
+    fixture.componentRef.setInput('id', 'abc');
+    fixture.componentRef.setInput('clone', true);
+    await fixture.whenStable();
+    expect(element().querySelector('h1')?.textContent).toContain('Clonar QR');
+    expect(element().querySelector<HTMLInputElement>('input[type=text]')?.value).toBe('Copia de Web');
+    expect(element().textContent).not.toContain('Borrar');
+
+    type('textarea', 'https://example.com/otra');
+    await fixture.whenStable();
+    const submit = element().querySelector<HTMLButtonElement>('button[type=submit]');
+    expect(submit?.textContent).toContain('Crear copia');
+    submit?.click();
+    await fixture.whenStable();
+
+    expect(api.update).not.toHaveBeenCalled();
+    expect(api.create).toHaveBeenCalledWith({
+      name: 'Copia de Web',
+      value: 'https://example.com/otra',
+      design: saved.design,
+    });
+    expect(navigate).toHaveBeenCalledWith(['/qr', 'nuevo'], expect.objectContaining({ replaceUrl: true }));
+  });
+
+  it('borra el QR que se está editando tras confirmarlo y vuelve a la lista', async () => {
+    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    fixture.componentRef.setInput('id', 'abc');
+    await fixture.whenStable();
+    const remove = [...element().querySelectorAll('button')].find((button) => button.textContent?.trim() === 'Borrar');
+
+    remove?.click();
+    await fixture.whenStable();
+    expect(api.remove).not.toHaveBeenCalled();
+
+    confirm.mockReturnValue(true);
+    remove?.click();
+    await fixture.whenStable();
+    expect(api.remove).toHaveBeenCalledWith('abc');
+    expect(navigate).toHaveBeenCalledWith(['/']);
   });
 
   it('avisa del poco contraste', async () => {

@@ -238,6 +238,11 @@ input[type='range'] {
   gap: 0.5rem;
 }
 
+/* Las acciones peligrosas, apartadas de las demás. */
+.actions__end {
+  margin-left: auto;
+}
+
 .button {
   display: inline-flex;
   align-items: center;

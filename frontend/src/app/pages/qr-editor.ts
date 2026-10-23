@@ -29,7 +29,7 @@ interface Choice<T> {
   label: string;
 }
 
-/** Crear un QR (`/nuevo`) o editar uno guardado (`/qr/:id`). */
+/** Crear un QR (`/nuevo`), editar uno guardado (`/qr/:id`) o crear otro a partir de él (`/qr/:id/clonar`). */
 @Component({
   selector: 'app-qr-editor',
   imports: [QrDownload, QrPreview, RouterLink],
@@ -43,6 +43,13 @@ export class QrEditor implements OnInit {
 
   /** Parámetro de la ruta: vacío al crear uno nuevo. */
   readonly id = input<string>();
+  /** Dato de la ruta de clonar: el QR de `id` solo sirve de punto de partida y al guardar se crea otro. */
+  readonly clone = input(false);
+
+  /** El QR que se modifica al guardar; ninguno si se está creando (también al clonar). */
+  protected readonly editingId = computed(() => (this.clone() ? undefined : this.id()));
+  protected readonly title = computed(() => (this.clone() ? 'Clonar QR' : this.id() ? 'Editar QR' : 'Nuevo QR'));
+  protected readonly saveLabel = computed(() => (this.clone() ? 'Crear copia' : 'Guardar'));
 
   protected readonly name = signal('');
   protected readonly value = signal('https://');
@@ -53,7 +60,7 @@ export class QrEditor implements OnInit {
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly dirty = signal(false);
-  protected readonly message = signal<{ kind: 'success' | 'error'; text: string } | null>(null);
+  protected readonly message = signal<{ kind: 'success' | 'error' | 'info'; text: string } | null>(null);
   protected readonly logoError = signal<string | null>(null);
 
   protected readonly warnings = computed(() => designWarnings(this.design()));
@@ -99,11 +106,16 @@ export class QrEditor implements OnInit {
     this.loading.set(true);
     try {
       const qr = await this.api.get(id);
-      this.name.set(qr.name);
+      this.name.set(this.clone() ? `Copia de ${qr.name}` : qr.name);
       this.value.set(qr.value);
       this.design.set(qr.design);
       this.eyeColorLinked.set(qr.design.eyeColor === qr.design.foreground);
-      if (this.router.lastSuccessfulNavigation()?.extras.state?.['saved']) {
+      if (this.clone()) {
+        this.message.set({
+          kind: 'info',
+          text: `Copia de «${qr.name}»: cambia lo que quieras y pulsa «Crear copia». El original no se modifica.`,
+        });
+      } else if (this.router.lastSuccessfulNavigation()?.extras.state?.['saved']) {
         this.message.set({ kind: 'success', text: 'Guardado.' });
       }
     } catch {
@@ -201,7 +213,7 @@ export class QrEditor implements OnInit {
     this.message.set(null);
     const input = { name: this.name().trim(), value: this.value().trim(), design: this.design() };
     try {
-      const id = this.id();
+      const id = this.editingId();
       if (id) {
         await this.api.update(id, input);
       } else {
@@ -217,6 +229,20 @@ export class QrEditor implements OnInit {
       this.message.set({ kind: 'error', text: 'No se ha podido guardar. ¿Está el servidor en marcha?' });
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  protected async remove(): Promise<void> {
+    const id = this.editingId();
+    if (!id || !confirm(`¿Borrar «${this.name().trim() || 'este QR'}»? No se puede deshacer.`)) {
+      return;
+    }
+    try {
+      await this.api.remove(id);
+      this.dirty.set(false);
+      await this.router.navigate(['/']);
+    } catch {
+      this.message.set({ kind: 'error', text: 'No se ha podido borrar. ¿Está el servidor en marcha?' });
     }
   }
 
