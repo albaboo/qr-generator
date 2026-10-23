@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { designWarnings } from '../qr/contrast';
 import {
   BORDER_WIDTH,
@@ -29,7 +29,7 @@ interface Choice<T> {
 /** Crear un QR (`/nuevo`) o editar uno guardado (`/qr/:id`). */
 @Component({
   selector: 'app-qr-editor',
-  imports: [QrDownload, QrPreview],
+  imports: [QrDownload, QrPreview, RouterLink],
   templateUrl: './qr-editor.html',
   host: { '(window:beforeunload)': 'warnBeforeUnload($event)' },
   changeDetection: ChangeDetectionStrategy.OnPush,

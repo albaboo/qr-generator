@@ -13,7 +13,10 @@ import { QrPreview } from '../qr/qr-preview';
   template: `
     <div class="page-header">
       <h1>Mis QR</h1>
-      <a class="button" routerLink="/nuevo">Nuevo QR</a>
+      <!-- Con la lista vacía el único botón para crear es el del aviso. Sin servidor no hay aviso, pero se puede descargar. -->
+      @if (qrs()?.length || error()) {
+        <a class="button" routerLink="/nuevo">Nuevo QR</a>
+      }
     </div>
 
     @if (error()) {
@@ -23,8 +26,11 @@ import { QrPreview } from '../qr/qr-preview';
     @if (qrs(); as qrs) {
       @if (qrs.length === 0) {
         <div class="empty card">
-          <p>Todavía no has guardado ningún QR.</p>
-          <a class="button" routerLink="/nuevo">Crear el primero</a>
+          <p>
+            Todavía no tienes ningún QR. Crea uno a partir de un enlace, personalízalo y guárdalo para descargarlo
+            cuando quieras.
+          </p>
+          <a class="button" routerLink="/nuevo">Crear un QR</a>
         </div>
       } @else {
         <ul class="qr-grid">
