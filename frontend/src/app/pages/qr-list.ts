@@ -26,10 +26,13 @@ import { QrPreview } from '../qr/qr-preview';
     @if (qrs(); as qrs) {
       @if (qrs.length === 0) {
         <div class="empty card">
-          <p>
-            Todavía no tienes ningún QR. Crea uno a partir de un enlace, personalízalo y guárdalo para descargarlo
-            cuando quieras.
-          </p>
+          <svg class="empty__icon" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+            <path
+              d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h2v2h-2zm2 2h2v2h-2zm2-2h4v2h-4zm2 4h2v4h-4v-2h2zm-6 0h2v4h-2zm2 2h2v2h-2z"
+            />
+          </svg>
+          <h2>Aún no tienes ningún QR</h2>
+          <p>Crea uno a partir de un enlace, personalízalo y guárdalo para descargarlo cuando quieras.</p>
           <a class="button" routerLink="/nuevo">Crear un QR</a>
         </div>
       } @else {

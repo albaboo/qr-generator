@@ -26,6 +26,10 @@ import { renderQrSvg, svgDataUrl } from './render';
       aspect-ratio: 1;
       margin: 0;
     }
+    /* Cuadros grises detrás: solo se ven donde el QR no tiene fondo. */
+    img.qr-preview {
+      background: repeating-conic-gradient(var(--color-checker) 0 25%, transparent 0 50%) 0 0 / 1rem 1rem;
+    }
     .qr-preview--empty {
       display: grid;
       place-items: center;

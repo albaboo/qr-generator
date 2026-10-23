@@ -1,13 +1,26 @@
-/** Forma de cada módulo (cuadradito) del código. */
-export type ModuleShape = 'square' | 'rounded' | 'dot';
+/**
+ * Forma de cada módulo (cuadradito) del código. Las «unidas» se funden con los módulos vecinos: «rounded-joined»
+ * solo redondea las esquinas exteriores y «dot-joined» une los puntos con tramos del mismo grosor.
+ */
+export type ModuleShape = 'square' | 'rounded' | 'rounded-joined' | 'dot' | 'dot-joined';
+export const MODULE_SHAPES: readonly ModuleShape[] = ['square', 'rounded', 'rounded-joined', 'dot', 'dot-joined'];
 /** Forma de los tres «ojos» (los cuadros de las esquinas que usan las cámaras para encontrar el código). */
 export type EyeShape = 'square' | 'rounded' | 'circle';
 
+/** Estilo de la línea del borde. */
+export type BorderStyle = 'solid' | 'double' | 'dashed' | 'dotted';
+export const BORDER_STYLES: readonly BorderStyle[] = ['solid', 'double', 'dashed', 'dotted'];
+
 export interface BorderDesign {
   enabled: boolean;
+  style: BorderStyle;
   color: string;
   /** Grosor en módulos. */
   width: number;
+  /** Redondeo de las esquinas por fuera del borde, en módulos. */
+  outerRadius: number;
+  /** Redondeo de las esquinas por dentro del borde (y del fondo que encierra), en módulos. */
+  innerRadius: number;
 }
 
 export interface LogoDesign {
@@ -18,6 +31,8 @@ export interface LogoDesign {
   size: number;
   /** Color del recuadro sobre el que va la imagen. */
   boxColor: string;
+  /** Recuadro sin color: la imagen queda sobre el hueco sin módulos (se guarda el color igualmente). */
+  boxTransparent: boolean;
   /** Margen interior entre el recuadro y la imagen, como fracción del lado del recuadro. */
   padding: number;
   /** Redondeo de las esquinas del recuadro, como fracción del lado (0,5 = círculo). */
@@ -27,12 +42,14 @@ export interface LogoDesign {
 export interface QrDesign {
   foreground: string;
   background: string;
+  /** Sin fondo: el fondo, la zona de silencio y el hueco del logo quedan transparentes (se guarda el color igualmente). */
+  transparent: boolean;
   eyeColor: string;
   moduleShape: ModuleShape;
   eyeShape: EyeShape;
   /** Zona de silencio en módulos: el estándar pide al menos 4 para que se pueda leer. */
   quietZone: number;
-  /** Redondeo de las esquinas del fondo (y del borde), en módulos. */
+  /** Redondeo de las esquinas del fondo cuando no hay borde, en módulos (con borde mandan los del borde). */
   cornerRadius: number;
   border: BorderDesign;
   logo: LogoDesign;
@@ -72,22 +89,42 @@ export function isImageDataUrl(value: unknown): value is string {
   return typeof value === 'string' && IMAGE_DATA_URL.test(value);
 }
 
-/** Radio máximo de las esquinas: el recorte tiene que quedarse dentro de la zona de silencio y del borde. */
-export function maxCornerRadius(design: Pick<QrDesign, 'quietZone' | 'border'>): number {
-  return design.quietZone + (design.border.enabled ? design.border.width : 0);
+/**
+ * Límites de los redondeos: el recorte de cada esquina tiene que quedarse dentro de la zona de silencio (y del borde,
+ * si es por fuera) para no comerse los ojos.
+ */
+export function cornerRadiusRange(design: Pick<QrDesign, 'quietZone'>): Range {
+  return { min: 0, max: design.quietZone, step: 0.5 };
+}
+
+export function borderOuterRadiusRange(design: Pick<QrDesign, 'quietZone' | 'border'>): Range {
+  return { min: 0, max: design.quietZone + design.border.width, step: 0.5 };
+}
+
+export function borderInnerRadiusRange(design: Pick<QrDesign, 'quietZone'>): Range {
+  return { min: 0, max: design.quietZone, step: 0.5 };
 }
 
 export function defaultDesign(): QrDesign {
   return {
     foreground: '#000000',
     background: '#ffffff',
+    transparent: false,
     eyeColor: '#000000',
     moduleShape: 'square',
     eyeShape: 'square',
     quietZone: 4,
     cornerRadius: 0,
-    border: { enabled: false, color: '#000000', width: 1 },
-    logo: { enabled: false, image: null, size: 0.22, boxColor: '#ffffff', padding: 0.1, radius: 0.2 },
+    border: { enabled: false, style: 'solid', color: '#000000', width: 1, outerRadius: 0, innerRadius: 0 },
+    logo: {
+      enabled: false,
+      image: null,
+      size: 0.22,
+      boxColor: '#ffffff',
+      boxTransparent: false,
+      padding: 0.1,
+      radius: 0.2,
+    },
   };
 }
 
@@ -104,31 +141,40 @@ export function normalizeDesign(raw: unknown): QrDesign {
   const design: QrDesign = {
     foreground: color(source['foreground'], base.foreground),
     background: color(source['background'], base.background),
+    transparent: source['transparent'] === true,
     eyeColor: color(source['eyeColor'], color(source['foreground'], base.eyeColor)),
-    moduleShape: oneOf(source['moduleShape'], ['square', 'rounded', 'dot'], base.moduleShape),
+    moduleShape: oneOf(source['moduleShape'], MODULE_SHAPES, base.moduleShape),
     eyeShape: oneOf(source['eyeShape'], ['square', 'rounded', 'circle'], base.eyeShape),
     quietZone,
     cornerRadius: 0,
     border: {
       enabled: border['enabled'] === true,
+      style: oneOf(border['style'], BORDER_STYLES, base.border.style),
       color: color(border['color'], base.border.color),
       width: clampNumber(border['width'], BORDER_WIDTH, base.border.width),
+      outerRadius: 0,
+      innerRadius: 0,
     },
     logo: {
       enabled: logo['enabled'] === true,
       image: isImageDataUrl(logo['image']) ? logo['image'] : null,
       size: clampNumber(logo['size'], LOGO_SIZE, base.logo.size),
       boxColor: color(logo['boxColor'], base.logo.boxColor),
+      boxTransparent: logo['boxTransparent'] === true,
       padding: clampNumber(logo['padding'], LOGO_PADDING, base.logo.padding),
       radius: clampNumber(logo['radius'], LOGO_RADIUS, base.logo.radius),
     },
   };
+  // Antes había un solo redondeo para todo: los diseños de entonces sacan de él los del borde y se ven igual.
+  const legacyRadius = clampNumber(source['cornerRadius'], borderOuterRadiusRange(design), base.cornerRadius);
   design.cornerRadius = clampNumber(source['cornerRadius'], cornerRadiusRange(design), base.cornerRadius);
+  design.border.outerRadius = clampNumber(border['outerRadius'], borderOuterRadiusRange(design), legacyRadius);
+  design.border.innerRadius = clampNumber(
+    border['innerRadius'],
+    borderInnerRadiusRange(design),
+    Math.min(quietZone, Math.max(0, legacyRadius - design.border.width)),
+  );
   return design;
-}
-
-export function cornerRadiusRange(design: Pick<QrDesign, 'quietZone' | 'border'>): Range {
-  return { min: 0, max: maxCornerRadius(design), step: 0.5 };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

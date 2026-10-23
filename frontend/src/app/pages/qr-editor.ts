@@ -4,6 +4,7 @@ import { designWarnings } from '../qr/contrast';
 import {
   BORDER_WIDTH,
   BorderDesign,
+  BorderStyle,
   EyeShape,
   LOGO_PADDING,
   LOGO_RADIUS,
@@ -12,6 +13,8 @@ import {
   ModuleShape,
   QUIET_ZONE,
   QrDesign,
+  borderInnerRadiusRange,
+  borderOuterRadiusRange,
   cornerRadiusRange,
   defaultDesign,
   normalizeDesign,
@@ -55,6 +58,8 @@ export class QrEditor implements OnInit {
 
   protected readonly warnings = computed(() => designWarnings(this.design()));
   protected readonly cornerRadius = computed(() => cornerRadiusRange(this.design()));
+  protected readonly borderOuterRadius = computed(() => borderOuterRadiusRange(this.design()));
+  protected readonly borderInnerRadius = computed(() => borderInnerRadiusRange(this.design()));
   protected readonly canSave = computed(
     () => this.name().trim() !== '' && this.value().trim() !== '' && !this.saving(),
   );
@@ -70,7 +75,15 @@ export class QrEditor implements OnInit {
   protected readonly moduleShapes: Choice<ModuleShape>[] = [
     { value: 'square', label: 'Cuadrados' },
     { value: 'rounded', label: 'Redondeados' },
+    { value: 'rounded-joined', label: 'Redondeados unidos' },
     { value: 'dot', label: 'Puntos' },
+    { value: 'dot-joined', label: 'Puntos unidos' },
+  ];
+  protected readonly borderStyles: Choice<BorderStyle>[] = [
+    { value: 'solid', label: 'Continua' },
+    { value: 'double', label: 'Doble' },
+    { value: 'dashed', label: 'Discontinua' },
+    { value: 'dotted', label: 'De puntos' },
   ];
   protected readonly eyeShapes: Choice<EyeShape>[] = [
     { value: 'square', label: 'Cuadrados' },

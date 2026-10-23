@@ -2,12 +2,14 @@
 
 Web para crear códigos QR personalizados a partir de un enlace, guardarlos y descargarlos en PNG o SVG.
 
-- Colores de los módulos, del fondo y de los ojos (las tres esquinas), con avisos si el contraste es bajo o el código
-  está invertido.
-- Forma de los módulos (cuadrados, redondeados o puntos) y de los ojos (cuadrados, redondeados o círculos).
+- Colores de los módulos, del fondo y de los ojos (las tres esquinas), o sin fondo (transparente), con avisos si el
+  contraste es bajo o el código está invertido.
+- Forma de los módulos (cuadrados, redondeados, redondeados unidos, puntos o puntos unidos) y de los ojos
+  (cuadrados, redondeados o círculos).
 - Zona de silencio (mínimo 4 módulos) y esquinas redondeadas.
-- Borde opcional con color y grosor.
-- Imagen opcional en el centro sobre un recuadro con color, margen interior y redondeo propios.
+- Borde opcional con estilo (continuo, doble, discontinuo o de puntos), color, grosor y redondeo propio por fuera y
+  por dentro.
+- Imagen opcional en el centro sobre un recuadro con color (o transparente), margen interior y redondeo propios.
 - Los QR se guardan en el servidor, así que se pueden volver a editar o descargar más adelante.
 
 ## Garantías de legibilidad
@@ -16,8 +18,8 @@ Igual que el QR de EMM:
 
 - Corrección de errores alta (H), que recupera hasta un 30 % del código.
 - Zona de silencio de al menos 4 módulos, como pide el estándar.
-- La imagen del centro ocupa como mucho un 22 % del lado y va separada de los módulos por un margen de un módulo
-  del color del fondo.
+- La imagen del centro ocupa como mucho un 22 % del lado y alrededor de su recuadro queda un margen de un módulo sin
+  módulos.
 
 ## Ponerlo en marcha con Docker
 

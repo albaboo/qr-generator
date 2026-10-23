@@ -1,4 +1,4 @@
-import { QrDesign, defaultDesign } from './design';
+import { BorderDesign, QrDesign, defaultDesign } from './design';
 import { qrGeometry, qrMatrix, renderQrSvg } from './render';
 
 const URL_EXAMPLE = 'https://example.com';
@@ -6,6 +6,15 @@ const PNG = 'data:image/png;base64,iVBORw0KGgo=';
 
 function design(changes: Partial<QrDesign> = {}): QrDesign {
   return { ...defaultDesign(), ...changes };
+}
+
+function border(changes: Partial<BorderDesign> = {}): BorderDesign {
+  return { enabled: true, style: 'solid', color: '#ff0000', width: 1, outerRadius: 0, innerRadius: 0, ...changes };
+}
+
+/** Esquinas superiores izquierdas de los módulos cuadrados de un trazado. */
+function squares(d: string): [number, number][] {
+  return Array.from(d.matchAll(/M([\d.]+) ([\d.]+)/g), (match) => [Number(match[1]), Number(match[2])]);
 }
 
 function parse(svg: string): Document {
@@ -21,7 +30,7 @@ describe('qrMatrix', () => {
 
 describe('qrGeometry', () => {
   it('rodea la matriz con la zona de silencio y el borde', () => {
-    const geometry = qrGeometry(29, design({ quietZone: 4, border: { enabled: true, color: '#000000', width: 2 } }));
+    const geometry = qrGeometry(29, design({ quietZone: 4, border: border({ width: 2 }) }));
     expect(geometry.offset).toBe(6);
     expect(geometry.size).toBe(41);
     expect(geometry.logo).toBeNull();
@@ -71,31 +80,94 @@ describe('renderQrSvg', () => {
     expect(d.match(/M/g)).toHaveLength(dark);
   });
 
-  it('dibuja el borde por fuera y el fondo dentro, con las esquinas redondeadas', () => {
+  it('dibuja el borde como un anillo con sus propias esquinas por fuera y por dentro', () => {
     const svg = parse(
-      renderQrSvg(URL_EXAMPLE, design({ cornerRadius: 3, border: { enabled: true, color: '#ff0000', width: 1 } })),
+      renderQrSvg(URL_EXAMPLE, design({ border: border({ width: 1, outerRadius: 3, innerRadius: 1 }) })),
     );
-    const [border, background] = Array.from(svg.querySelectorAll('svg > rect'));
-    expect(border.getAttribute('fill')).toBe('#ff0000');
-    expect(border.getAttribute('rx')).toBe('3');
-    expect(background.getAttribute('x')).toBe('1');
-    expect(background.getAttribute('rx')).toBe('2');
+    // Todo va recortado a la forma exterior.
+    expect(svg.querySelector('clipPath#qr-outline path')?.getAttribute('d')).toMatch(/^M3 0h/);
+    const ring = svg.querySelector('g[clip-path] > path');
+    expect(ring?.getAttribute('fill')).toBe('#ff0000');
+    expect(ring?.getAttribute('fill-rule')).toBe('evenodd');
+    // Exterior de radio 3 desde la esquina e interior de radio 1 a un módulo hacia dentro.
+    expect(ring?.getAttribute('d')).toMatch(/^M3 0h33a3 3 0 0 1 3 3.*M2 1h35a1 1 0 0 1 1 1/);
+    const background = svg.querySelector('g[clip-path] > rect');
+    expect(background?.getAttribute('x')).toBe('1');
+    expect(background?.getAttribute('rx')).toBe('1');
   });
 
-  it('pone la imagen del centro sobre su recuadro, con un módulo de margen del color del fondo', () => {
+  it('admite un borde redondo por fuera y recto por dentro', () => {
+    const svg = parse(
+      renderQrSvg(URL_EXAMPLE, design({ border: border({ width: 1, outerRadius: 5, innerRadius: 0 }) })),
+    );
+    expect(svg.querySelector('clipPath#qr-outline')).not.toBeNull();
+    expect(svg.querySelector('g[clip-path] > rect')?.hasAttribute('rx')).toBe(false);
+  });
+
+  it('sin borde redondea el fondo con el redondeo general', () => {
+    const svg = parse(renderQrSvg(URL_EXAMPLE, design({ cornerRadius: 2 })));
+    expect(svg.querySelector('svg > rect')?.getAttribute('rx')).toBe('2');
+    expect(svg.querySelector('clipPath')).toBeNull();
+  });
+
+  it('dibuja el borde doble como dos anillos de un tercio del grosor', () => {
+    const d = parse(renderQrSvg(URL_EXAMPLE, design({ border: border({ style: 'double', width: 3 }) })))
+      .querySelector('svg > path')
+      ?.getAttribute('d');
+    // Anillos de 0 a 1 y de 2 a 3 módulos hacia dentro.
+    expect(d?.match(/M(\d+) \1h/g)).toEqual(['M0 0h', 'M1 1h', 'M2 2h', 'M3 3h']);
+  });
+
+  it('dibuja los bordes discontinuo y de puntos con un número entero de trazos', () => {
+    for (const style of ['dashed', 'dotted'] as const) {
+      const stroke = parse(renderQrSvg(URL_EXAMPLE, design({ border: border({ style, width: 2 }) }))).querySelector(
+        'rect[stroke="#ff0000"]',
+      );
+      expect(stroke?.getAttribute('x')).toBe('1');
+      expect(stroke?.getAttribute('stroke-width')).toBe('2');
+      expect(Number.isInteger(Number(stroke?.getAttribute('pathLength')))).toBe(true);
+      expect(stroke?.getAttribute('stroke-dasharray')).toBe(style === 'dashed' ? '.6 .4' : '0 1');
+    }
+  });
+
+  it('sin fondo no pinta el fondo, pero sí el borde', () => {
+    const svg = parse(renderQrSvg(URL_EXAMPLE, design({ transparent: true, border: border({ width: 1 }) })));
+    expect(svg.querySelector('[fill="#ffffff"]')).toBeNull();
+    expect(svg.querySelector('svg > path')?.getAttribute('fill')).toBe('#ff0000');
+    expect(renderQrSvg(URL_EXAMPLE, design({ transparent: true }))).not.toContain('#ffffff');
+  });
+
+  it('pone la imagen del centro sobre su recuadro, sin módulos en un margen de un módulo alrededor', () => {
     const svg = parse(
       renderQrSvg(
         URL_EXAMPLE,
-        design({ logo: { enabled: true, image: PNG, size: 0.22, boxColor: '#00ff00', padding: 0.1, radius: 0 } }),
+        design({ logo: { ...defaultDesign().logo, enabled: true, image: PNG, boxColor: '#00ff00', radius: 0 } }),
       ),
     );
     const image = svg.querySelector('image');
     expect(image?.getAttribute('href')).toBe(PNG);
     expect(image?.getAttribute('x')).toBe('16.5');
     expect(image?.getAttribute('width')).toBe('4');
-    const frame = Array.from(svg.querySelectorAll('svg > rect')).find((rect) => rect.getAttribute('width') === '7');
-    expect(frame?.getAttribute('fill')).toBe('#ffffff');
-    expect(frame?.getAttribute('x')).toBe('15');
+    const box = svg.querySelector('rect[fill="#00ff00"]');
+    expect(box?.getAttribute('x')).toBe('16');
+    expect(box?.getAttribute('width')).toBe('5');
+    // El hueco va de 15 a 22 (recuadro de 16 a 21 más un módulo): ningún módulo empieza dentro.
+    const modules = squares(svg.querySelector('path')?.getAttribute('d') ?? '');
+    expect(modules.length).toBeGreaterThan(0);
+    expect(modules.filter(([x, y]) => x >= 15 && x < 22 && y >= 15 && y < 22)).toEqual([]);
+  });
+
+  it('con el recuadro transparente solo dibuja la imagen, recortada a su forma', () => {
+    const svg = renderQrSvg(
+      URL_EXAMPLE,
+      design({
+        logo: { ...defaultDesign().logo, enabled: true, image: PNG, boxColor: '#00ff00', boxTransparent: true },
+      }),
+    );
+    const doc = parse(svg);
+    expect(doc.querySelector('svg > rect[fill="#00ff00"]')).toBeNull();
+    expect(doc.querySelector('clipPath#qr-logo-clip path')).not.toBeNull();
+    expect(doc.querySelector('image')?.getAttribute('href')).toBe(PNG);
   });
 
   it('con logo pero sin imagen dibuja solo el recuadro', () => {
@@ -119,9 +191,31 @@ describe('renderQrSvg', () => {
     ).toThrow();
   });
 
+  it('une los redondeados: solo redondea las esquinas que no tocan otro módulo', () => {
+    const d = renderQrSvg(URL_EXAMPLE, design({ moduleShape: 'rounded-joined' }));
+    const path = parse(d).querySelector('path')?.getAttribute('d') ?? '';
+    // Un módulo por celda, como los cuadrados, pero con arcos de radio 0,4 en algunas esquinas.
+    const squarePath = parse(renderQrSvg(URL_EXAMPLE, design())).querySelector('path')?.getAttribute('d') ?? '';
+    expect(path.match(/M/g)).toHaveLength(squarePath.match(/M/g)?.length ?? -1);
+    expect(path).toContain('a0.4 0.4 0 0 1');
+    // Alguno queda totalmente recto (todos sus lados tocan otro módulo) y alguno es una pieza suelta redonda.
+    expect(path).toMatch(/M\d+ \d+h1v1h-1v-1z/);
+    expect(path).toMatch(/h0\.2a0\.4 0\.4 0 0 1 0\.4 0\.4v0\.2a/);
+  });
+
+  it('une los puntos con tramos hacia los vecinos de la derecha y de abajo', () => {
+    const path =
+      parse(renderQrSvg(URL_EXAMPLE, design({ moduleShape: 'dot-joined' })))
+        .querySelector('path')
+        ?.getAttribute('d') ?? '';
+    expect(path).toContain('a0.4 0.4 0 1 1 0.8 0');
+    expect(path).toMatch(/h1v0\.8h-1z/);
+    expect(path).toMatch(/h0\.8v1h-0\.8z/);
+  });
+
   it('dibuja las otras formas de módulos y ojos', () => {
     const dots = renderQrSvg(URL_EXAMPLE, design({ moduleShape: 'dot', eyeShape: 'circle' }));
-    expect(dots).toContain('a.45 .45');
+    expect(dots).toContain('a0.45 0.45');
     expect(parse(dots).querySelectorAll('circle')).toHaveLength(6);
     const rounded = renderQrSvg(URL_EXAMPLE, design({ moduleShape: 'rounded', eyeShape: 'rounded' }));
     expect(rounded).toContain('rx="1.5"');

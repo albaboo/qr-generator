@@ -6,17 +6,19 @@ import { QrStore } from '../src/store.ts';
 const design = {
   foreground: '#000000',
   background: '#ffffff',
+  transparent: false,
   eyeColor: '#000000',
   moduleShape: 'square',
   eyeShape: 'square',
   quietZone: 4,
   cornerRadius: 0,
-  border: { enabled: false, color: '#000000', width: 1 },
+  border: { enabled: false, style: 'solid', color: '#000000', width: 1, outerRadius: 0, innerRadius: 0 },
   logo: {
     enabled: true,
     image: 'data:image/png;base64,iVBORw0KGgo=',
     size: 0.22,
     boxColor: '#ffffff',
+    boxTransparent: false,
     padding: 0.1,
     radius: 0.2,
   },
@@ -107,8 +109,31 @@ describe('API de QR', () => {
       { ...input, design: { ...design, logo: { ...design.logo, image: 'data:image/svg+xml;base64,PHN2Zz4=' } } },
     ],
     ['una forma desconocida', { ...input, design: { ...design, moduleShape: 'star' } }],
+    [
+      'un estilo de borde desconocido',
+      { ...input, design: { ...design, border: { ...design.border, style: 'wavy' } } },
+    ],
+    [
+      'un redondeo interior del borde mayor que la zona de silencio máxima',
+      { ...input, design: { ...design, border: { ...design.border, innerRadius: 11 } } },
+    ],
+    ['sin indicar si el fondo es transparente', { ...input, design: { ...design, transparent: undefined } }],
   ])('rechaza un QR con %s', async (_case, body) => {
     expect((await create(body)).statusCode).toBe(400);
+  });
+
+  it('acepta las formas unidas, los fondos transparentes y los estilos y redondeos del borde', async () => {
+    const changed = {
+      ...design,
+      transparent: true,
+      moduleShape: 'dot-joined',
+      border: { enabled: true, style: 'dotted', color: '#ff0000', width: 2, outerRadius: 6, innerRadius: 0 },
+      logo: { ...design.logo, boxTransparent: true },
+    };
+    const response = await create({ ...input, design: changed });
+    expect(response.statusCode).toBe(201);
+    expect(response.json().design).toEqual(changed);
+    expect((await create({ ...input, design: { ...design, moduleShape: 'rounded-joined' } })).statusCode).toBe(201);
   });
 
   it('descarta los campos que no conoce', async () => {

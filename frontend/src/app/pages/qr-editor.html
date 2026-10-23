@@ -39,14 +39,7 @@
         <legend>Contenido</legend>
         <label class="field">
           <span>Nombre</span>
-          <input
-            type="text"
-            required
-            maxlength="120"
-            placeholder="Por ejemplo, Web de EMM"
-            [value]="name()"
-            (input)="setName($event)"
-          />
+          <input type="text" required maxlength="120" [value]="name()" (input)="setName($event)" />
         </label>
         <label class="field">
           <span>Enlace o texto</span>
@@ -61,12 +54,18 @@
             <span>Módulos</span>
             <input type="color" [value]="design().foreground" (input)="patch({ foreground: text($event) })" />
           </label>
-          <label class="field field--color">
-            <span>Fondo</span>
-            <input type="color" [value]="design().background" (input)="patch({ background: text($event) })" />
-          </label>
-          <button type="button" class="button button--secondary" (click)="swapColors()">Intercambiar</button>
+          @if (!design().transparent) {
+            <label class="field field--color">
+              <span>Fondo</span>
+              <input type="color" [value]="design().background" (input)="patch({ background: text($event) })" />
+            </label>
+            <button type="button" class="button button--secondary" (click)="swapColors()">Intercambiar</button>
+          }
         </div>
+        <label class="check">
+          <input type="checkbox" [checked]="design().transparent" (change)="patch({ transparent: checked($event) })" />
+          <span>Sin fondo (transparente)</span>
+        </label>
         <label class="check">
           <input type="checkbox" [checked]="eyeColorLinked()" (change)="linkEyeColor(checked($event))" />
           <span>Ojos (las tres esquinas) del mismo color que los módulos</span>
@@ -111,17 +110,20 @@
           />
           <small>Mínimo 4: es el espacio libre que necesitan las cámaras alrededor del código.</small>
         </label>
-        <label class="field">
-          <span>Esquinas redondeadas: {{ design().cornerRadius }}</span>
-          <input
-            type="range"
-            [min]="cornerRadius().min"
-            [max]="cornerRadius().max"
-            [step]="cornerRadius().step"
-            [value]="design().cornerRadius"
-            (input)="patch({ cornerRadius: number($event) })"
-          />
-        </label>
+        <!-- Con borde, las esquinas se eligen en el propio borde (por fuera y por dentro). -->
+        @if (!design().border.enabled) {
+          <label class="field">
+            <span>Esquinas redondeadas: {{ design().cornerRadius }}</span>
+            <input
+              type="range"
+              [min]="cornerRadius().min"
+              [max]="cornerRadius().max"
+              [step]="cornerRadius().step"
+              [value]="design().cornerRadius"
+              (input)="patch({ cornerRadius: number($event) })"
+            />
+          </label>
+        }
       </fieldset>
 
       <fieldset class="card">
@@ -136,6 +138,14 @@
         </label>
         @if (design().border.enabled) {
           <div class="row">
+            <label class="field">
+              <span>Estilo</span>
+              <select [value]="design().border.style" (change)="patchBorder({ style: choice($event, borderStyles) })">
+                @for (style of borderStyles; track style.value) {
+                  <option [value]="style.value">{{ style.label }}</option>
+                }
+              </select>
+            </label>
             <label class="field field--color">
               <span>Color</span>
               <input type="color" [value]="design().border.color" (input)="patchBorder({ color: text($event) })" />
@@ -149,6 +159,30 @@
                 [step]="ranges.borderWidth.step"
                 [value]="design().border.width"
                 (input)="patchBorder({ width: number($event) })"
+              />
+            </label>
+          </div>
+          <div class="row">
+            <label class="field field--grow">
+              <span>Esquinas por fuera: {{ design().border.outerRadius }}</span>
+              <input
+                type="range"
+                [min]="borderOuterRadius().min"
+                [max]="borderOuterRadius().max"
+                [step]="borderOuterRadius().step"
+                [value]="design().border.outerRadius"
+                (input)="patchBorder({ outerRadius: number($event) })"
+              />
+            </label>
+            <label class="field field--grow">
+              <span>Esquinas por dentro: {{ design().border.innerRadius }}</span>
+              <input
+                type="range"
+                [min]="borderInnerRadius().min"
+                [max]="borderInnerRadius().max"
+                [step]="borderInnerRadius().step"
+                [value]="design().border.innerRadius"
+                (input)="patchBorder({ innerRadius: number($event) })"
               />
             </label>
           </div>
@@ -188,11 +222,21 @@
             />
             <small>Como mucho un 22 %: la corrección de errores recupera lo que tapa la imagen.</small>
           </label>
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="design().logo.boxTransparent"
+              (change)="patchLogo({ boxTransparent: checked($event) })"
+            />
+            <span>Recuadro transparente</span>
+          </label>
           <div class="row">
-            <label class="field field--color">
-              <span>Recuadro</span>
-              <input type="color" [value]="design().logo.boxColor" (input)="patchLogo({ boxColor: text($event) })" />
-            </label>
+            @if (!design().logo.boxTransparent) {
+              <label class="field field--color">
+                <span>Recuadro</span>
+                <input type="color" [value]="design().logo.boxColor" (input)="patchLogo({ boxColor: text($event) })" />
+              </label>
+            }
             <label class="field field--grow">
               <span>Margen interior: {{ percent(design().logo.padding) }}</span>
               <input

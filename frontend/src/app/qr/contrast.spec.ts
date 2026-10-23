@@ -43,4 +43,12 @@ describe('contraste', () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0].message).toContain('los ojos');
   });
+
+  it('sin fondo avisa de qué fondo necesitará detrás', () => {
+    const dark = designWarnings({ ...defaultDesign(), transparent: true });
+    expect(dark).toHaveLength(1);
+    expect(dark[0].message).toContain('fondo liso y claro');
+    const light = designWarnings({ ...defaultDesign(), transparent: true, foreground: '#ffffff', eyeColor: '#ffffff' });
+    expect(light[0].message).toContain('fondo liso y oscuro');
+  });
 });

@@ -11,6 +11,8 @@ export interface DesignWarning {
 export const MIN_CONTRAST = 3;
 /** A partir de esta relación se lee bien incluso con poca luz o pantallas con brillo bajo. */
 export const GOOD_CONTRAST = 4.5;
+/** Gris medio: los módulos más oscuros que él necesitan detrás un fondo claro, y los más claros, uno oscuro. */
+const MID_GREY = '#767676';
 
 /** Luminancia relativa de un color #rrggbb (fórmula de WCAG 2). */
 export function luminance(hex: string): number {
@@ -29,6 +31,16 @@ export function contrastRatio(a: string, b: string): number {
 
 /** Avisos sobre combinaciones de colores que pueden impedir que las cámaras lean el código. */
 export function designWarnings(design: QrDesign): DesignWarning[] {
+  if (design.transparent) {
+    // Sin fondo no se sabe sobre qué irá: se avisa de qué tipo de fondo necesita para leerse.
+    const behind = luminance(design.foreground) > luminance(MID_GREY) ? 'oscuro' : 'claro';
+    return [
+      {
+        level: 'warning',
+        message: `Sin fondo, el QR se verá sobre lo que haya detrás: para que se lea, ponlo sobre un fondo liso y ${behind} que contraste con los módulos.`,
+      },
+    ];
+  }
   const warnings: DesignWarning[] = [];
   warnings.push(...pairWarnings('los módulos', design.foreground, design.background));
   if (design.eyeColor !== design.foreground) {
