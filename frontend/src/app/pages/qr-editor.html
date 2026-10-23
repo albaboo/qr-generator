@@ -87,17 +87,17 @@
         <div class="row">
           <label class="field">
             <span>Módulos</span>
-            <select [value]="design().moduleShape" (change)="patch({ moduleShape: choice($event, moduleShapes) })">
+            <select (change)="patch({ moduleShape: choice($event, moduleShapes) })">
               @for (shape of moduleShapes; track shape.value) {
-                <option [value]="shape.value">{{ shape.label }}</option>
+                <option [value]="shape.value" [selected]="shape.value === design().moduleShape">{{ shape.label }}</option>
               }
             </select>
           </label>
           <label class="field">
             <span>Ojos</span>
-            <select [value]="design().eyeShape" (change)="patch({ eyeShape: choice($event, eyeShapes) })">
+            <select (change)="patch({ eyeShape: choice($event, eyeShapes) })">
               @for (shape of eyeShapes; track shape.value) {
-                <option [value]="shape.value">{{ shape.label }}</option>
+                <option [value]="shape.value" [selected]="shape.value === design().eyeShape">{{ shape.label }}</option>
               }
             </select>
           </label>
@@ -144,9 +144,9 @@
           <div class="row">
             <label class="field">
               <span>Estilo</span>
-              <select [value]="design().border.style" (change)="patchBorder({ style: choice($event, borderStyles) })">
+              <select (change)="patchBorder({ style: choice($event, borderStyles) })">
                 @for (style of borderStyles; track style.value) {
-                  <option [value]="style.value">{{ style.label }}</option>
+                  <option [value]="style.value" [selected]="style.value === design().border.style">{{ style.label }}</option>
                 }
               </select>
             </label>

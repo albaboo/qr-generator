@@ -81,6 +81,23 @@ describe('QrEditor', () => {
     expect(element().textContent).toContain('Guardado.');
   });
 
+  it('los desplegables muestran las formas y el estilo de borde del QR guardado', async () => {
+    api.get.mockResolvedValue({
+      ...saved,
+      design: {
+        ...saved.design,
+        moduleShape: 'rounded-joined',
+        eyeShape: 'circle',
+        border: { ...saved.design.border, enabled: true, style: 'dashed' },
+      },
+    });
+    fixture.componentRef.setInput('id', 'abc');
+    await fixture.whenStable();
+
+    const values = [...element().querySelectorAll('select')].map((select) => select.value);
+    expect(values).toEqual(expect.arrayContaining(['rounded-joined', 'circle', 'dashed']));
+  });
+
   it('clona un QR: parte de su diseño, permite cambiarlo y al confirmar crea otro sin tocar el original', async () => {
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     api.create.mockResolvedValue({ ...saved, id: 'nuevo' });
