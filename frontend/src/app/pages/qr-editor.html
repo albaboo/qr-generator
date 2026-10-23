@@ -1,0 +1,227 @@
+<div class="page-header">
+  <h1>{{ id() ? 'Editar QR' : 'Nuevo QR' }}</h1>
+</div>
+
+@if (loading()) {
+  <p role="status">Cargando…</p>
+} @else {
+  <div class="editor">
+    <aside class="editor__preview card" aria-label="Vista previa">
+      <app-qr-preview [value]="value()" [design]="design()" [label]="'QR de ' + (name() || value())" />
+      <div aria-live="polite">
+        @for (warning of warnings(); track warning.message) {
+          <p
+            class="message"
+            [class.message--error]="warning.level === 'error'"
+            [class.message--warning]="warning.level === 'warning'"
+          >
+            {{ warning.message }}
+          </p>
+        }
+        @if (message(); as message) {
+          <p
+            class="message"
+            [class.message--success]="message.kind === 'success'"
+            [class.message--error]="message.kind === 'error'"
+          >
+            {{ message.text }}
+          </p>
+        }
+        @if (dirty() && !message()) {
+          <p class="message message--muted">Hay cambios sin guardar.</p>
+        }
+      </div>
+      <app-qr-download [name]="name()" [value]="value()" [design]="design()" />
+    </aside>
+    <form class="editor__form" (submit)="$event.preventDefault(); save()">
+      <fieldset class="card">
+        <legend>Contenido</legend>
+        <label class="field">
+          <span>Nombre</span>
+          <input
+            type="text"
+            required
+            maxlength="120"
+            placeholder="Por ejemplo, Web de EMM"
+            [value]="name()"
+            (input)="setName($event)"
+          />
+        </label>
+        <label class="field">
+          <span>Enlace o texto</span>
+          <textarea rows="2" required maxlength="2000" [value]="value()" (input)="setValue($event)"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset class="card">
+        <legend>Colores</legend>
+        <div class="row">
+          <label class="field field--color">
+            <span>Módulos</span>
+            <input type="color" [value]="design().foreground" (input)="patch({ foreground: text($event) })" />
+          </label>
+          <label class="field field--color">
+            <span>Fondo</span>
+            <input type="color" [value]="design().background" (input)="patch({ background: text($event) })" />
+          </label>
+          <button type="button" class="button button--secondary" (click)="swapColors()">Intercambiar</button>
+        </div>
+        <label class="check">
+          <input type="checkbox" [checked]="eyeColorLinked()" (change)="linkEyeColor(checked($event))" />
+          <span>Ojos (las tres esquinas) del mismo color que los módulos</span>
+        </label>
+        @if (!eyeColorLinked()) {
+          <label class="field field--color">
+            <span>Ojos</span>
+            <input type="color" [value]="design().eyeColor" (input)="patch({ eyeColor: text($event) })" />
+          </label>
+        }
+      </fieldset>
+
+      <fieldset class="card">
+        <legend>Forma</legend>
+        <div class="row">
+          <label class="field">
+            <span>Módulos</span>
+            <select [value]="design().moduleShape" (change)="patch({ moduleShape: choice($event, moduleShapes) })">
+              @for (shape of moduleShapes; track shape.value) {
+                <option [value]="shape.value">{{ shape.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="field">
+            <span>Ojos</span>
+            <select [value]="design().eyeShape" (change)="patch({ eyeShape: choice($event, eyeShapes) })">
+              @for (shape of eyeShapes; track shape.value) {
+                <option [value]="shape.value">{{ shape.label }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <label class="field">
+          <span>Margen (zona de silencio): {{ design().quietZone }} módulos</span>
+          <input
+            type="range"
+            [min]="ranges.quietZone.min"
+            [max]="ranges.quietZone.max"
+            [step]="ranges.quietZone.step"
+            [value]="design().quietZone"
+            (input)="patch({ quietZone: number($event) })"
+          />
+          <small>Mínimo 4: es el espacio libre que necesitan las cámaras alrededor del código.</small>
+        </label>
+        <label class="field">
+          <span>Esquinas redondeadas: {{ design().cornerRadius }}</span>
+          <input
+            type="range"
+            [min]="cornerRadius().min"
+            [max]="cornerRadius().max"
+            [step]="cornerRadius().step"
+            [value]="design().cornerRadius"
+            (input)="patch({ cornerRadius: number($event) })"
+          />
+        </label>
+      </fieldset>
+
+      <fieldset class="card">
+        <legend>Borde</legend>
+        <label class="check">
+          <input
+            type="checkbox"
+            [checked]="design().border.enabled"
+            (change)="patchBorder({ enabled: checked($event) })"
+          />
+          <span>Poner un borde alrededor</span>
+        </label>
+        @if (design().border.enabled) {
+          <div class="row">
+            <label class="field field--color">
+              <span>Color</span>
+              <input type="color" [value]="design().border.color" (input)="patchBorder({ color: text($event) })" />
+            </label>
+            <label class="field field--grow">
+              <span>Grosor: {{ design().border.width }} módulos</span>
+              <input
+                type="range"
+                [min]="ranges.borderWidth.min"
+                [max]="ranges.borderWidth.max"
+                [step]="ranges.borderWidth.step"
+                [value]="design().border.width"
+                (input)="patchBorder({ width: number($event) })"
+              />
+            </label>
+          </div>
+        }
+      </fieldset>
+
+      <fieldset class="card">
+        <legend>Imagen en el centro</legend>
+        <label class="check">
+          <input type="checkbox" [checked]="design().logo.enabled" (change)="patchLogo({ enabled: checked($event) })" />
+          <span>Poner una imagen en el centro</span>
+        </label>
+        @if (design().logo.enabled) {
+          <div class="row">
+            <label class="button button--secondary file-button">
+              {{ design().logo.image ? 'Cambiar imagen' : 'Subir imagen' }}
+              <input type="file" class="visually-hidden" [accept]="logoAccept" (change)="uploadLogo($event)" />
+            </label>
+            @if (design().logo.image) {
+              <button type="button" class="button button--secondary" (click)="patchLogo({ image: null })">
+                Quitar imagen
+              </button>
+            }
+          </div>
+          @if (logoError()) {
+            <p class="message message--error" role="alert">{{ logoError() }}</p>
+          }
+          <label class="field">
+            <span>Tamaño: {{ percent(design().logo.size) }} del código</span>
+            <input
+              type="range"
+              [min]="ranges.logoSize.min"
+              [max]="ranges.logoSize.max"
+              [step]="ranges.logoSize.step"
+              [value]="design().logo.size"
+              (input)="patchLogo({ size: number($event) })"
+            />
+            <small>Como mucho un 22 %: la corrección de errores recupera lo que tapa la imagen.</small>
+          </label>
+          <div class="row">
+            <label class="field field--color">
+              <span>Recuadro</span>
+              <input type="color" [value]="design().logo.boxColor" (input)="patchLogo({ boxColor: text($event) })" />
+            </label>
+            <label class="field field--grow">
+              <span>Margen interior: {{ percent(design().logo.padding) }}</span>
+              <input
+                type="range"
+                [min]="ranges.logoPadding.min"
+                [max]="ranges.logoPadding.max"
+                [step]="ranges.logoPadding.step"
+                [value]="design().logo.padding"
+                (input)="patchLogo({ padding: number($event) })"
+              />
+            </label>
+          </div>
+          <label class="field">
+            <span>Redondeo del recuadro: {{ percent(design().logo.radius * 2) }}</span>
+            <input
+              type="range"
+              [min]="ranges.logoRadius.min"
+              [max]="ranges.logoRadius.max"
+              [step]="ranges.logoRadius.step"
+              [value]="design().logo.radius"
+              (input)="patchLogo({ radius: number($event) })"
+            />
+          </label>
+        }
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit" class="button" [disabled]="!canSave()">{{ saving() ? 'Guardando…' : 'Guardar' }}</button>
+        <button type="button" class="button button--secondary" (click)="reset()">Restablecer diseño</button>
+      </div>
+    </form>
+  </div>
+}

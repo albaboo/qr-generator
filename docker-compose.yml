@@ -1,0 +1,19 @@
+services:
+  api:
+    build: ./backend
+    restart: unless-stopped
+    volumes:
+      - qr-data:/data
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${QR_PORT:-8080}:80"
+
+volumes:
+  # Aquí vive la base de datos con los QR guardados: sobrevive a `docker compose down` (no así a `down -v`).
+  qr-data:
