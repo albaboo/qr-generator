@@ -23,7 +23,7 @@ const design = {
     radius: 0.2,
   },
 };
-const input = { name: 'Web de EMM', value: 'https://example.com', design };
+const input = { name: 'Mi web', value: 'https://example.com', design };
 
 describe('API de QR', () => {
   let app: FastifyInstance;
@@ -46,10 +46,10 @@ describe('API de QR', () => {
   });
 
   it('crea un QR y lo devuelve con id y fechas', async () => {
-    const response = await create({ ...input, name: '  Web de EMM  ' });
+    const response = await create({ ...input, name: '  Mi web  ' });
     expect(response.statusCode).toBe(201);
     const qr = response.json();
-    expect(qr).toMatchObject({ ...input, name: 'Web de EMM' });
+    expect(qr).toMatchObject({ ...input, name: 'Mi web' });
     expect(qr.id).toMatch(/^[0-9a-f-]{36}$/);
     expect(qr.createdAt).toBe(qr.updatedAt);
   });

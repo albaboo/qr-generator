@@ -3,7 +3,7 @@ import { BorderDesign, EyeShape, ModuleShape, QrDesign, isHexColor, isImageDataU
 
 /** Lado de cada ojo (patrón de localización) en módulos, fijado por el estándar. */
 const EYE_SIZE = 7;
-/** Separación sin módulos entre el recuadro del logo y el resto del código (como en EMM). */
+/** Separación sin módulos entre el recuadro del logo y el resto del código. */
 const LOGO_MARGIN = 1;
 /** Radio de las esquinas exteriores en los módulos «redondeados unidos». */
 const JOINED_RADIUS = 0.4;

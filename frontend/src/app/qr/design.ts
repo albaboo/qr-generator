@@ -73,7 +73,7 @@ export interface Range {
 
 export const QUIET_ZONE: Range = { min: 4, max: 10, step: 1 };
 export const BORDER_WIDTH: Range = { min: 0.5, max: 4, step: 0.5 };
-/** Hasta un 22 % del lado, como en EMM: la corrección de errores alta (H) recupera hasta un 30 %. */
+/** Hasta un 22 % del lado: la corrección de errores alta (H) recupera hasta un 30 %. */
 export const LOGO_SIZE: Range = { min: 0.1, max: 0.22, step: 0.01 };
 export const LOGO_PADDING: Range = { min: 0, max: 0.3, step: 0.01 };
 export const LOGO_RADIUS: Range = { min: 0, max: 0.5, step: 0.01 };
