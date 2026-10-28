@@ -14,6 +14,10 @@ import { RouterLink, RouterOutlet } from '@angular/router';
     <main class="app-main">
       <router-outlet />
     </main>
+    <footer class="app-footer">
+      Made by
+      <a class="app-footer__link" href="https://github.com/albaboo" target="_blank" rel="noopener">albaboo</a>
+    </footer>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
